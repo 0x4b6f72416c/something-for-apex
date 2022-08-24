@@ -1,52 +1,70 @@
 from grabsrcreen import WindowCapture
+from pytesseract import pytesseract
+import matplotlib.pyplot as plt
+from datetime import datetime
 import cv2
-import time 
 import win32gui
-import numpy as np 
+import re
+
+_PATH_TO_TESSERACT = r"D:\teserract\tesseract.exe"
 
 def winEnumHandler( hwnd, ctx ):
     if win32gui.IsWindowVisible( hwnd ):
         print (hex(hwnd), win32gui.GetWindowText( hwnd ))
 
-def matchTemplates(cropedImgDict,screen):
+def getCurrentSqadsLeft(screen):
+    x,y,h,w = 1644,40,40,100
+    string = pytesseract.image_to_string(screen[y:y+h,x:x+w])
+    string = re.split(' ',string)
 
-    resultOfMatching = {}
+    try:
+        stringToInt = int(string[0])
+        return stringToInt
+    except:
+        pass 
 
-    for place, img in cropedImgDict.items():
-        result = cv2.matchTemplate(screen,img,cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, _ = cv2.minMaxLoc(result)
-        resultOfMatching.update({place:max_val})
-    maxResult = max(resultOfMatching,key=resultOfMatching.get)
-    if  maxResult > 0.95:
-        return maxResult
-    
+def getCurrentKills(screen):
+    x,y,h,w = 1535,85,40,200  
+    string =pytesseract.image_to_string(screen[y:y+h,x:x+w])
+    string = re.split(' ',string)
+    try:
+        stringToInt = int(string[0])
+        return stringToInt
+    except:
+        pass 
+
+
 if __name__ == "__main__":
 
+    pytesseract.tesseract_cmd = _PATH_TO_TESSERACT
     windowName = "Apex Legends"
     windowCapture = WindowCapture(windowName)
-    cropedImgDict2to10 = {i:cv2.cvtColor(cv2.imread(f"cropedImg/{i}.png"),cv2.COLOR_BGR2GRAY) for i in range(2,11)}
-    cropedImgDict11to20 = {i:cv2.cvtColor(cv2.imread(f"cropedImg/{i}.png"),cv2.COLOR_BGR2GRAY) for i in range(11,21)}
-    x,y,h,w = 1631,50,40,60
+    squadsKills = {a:0 for a in range(2,22)}
+    squadsLeft = 20
+    currentKills = 0
+    try:
+        while squadsLeft > 1 :
 
-    currentSquadsLeft = 20
-    tempArray = [20 for _ in range(8)]
+            for i in range(8):
+                screen = windowCapture.get_sreenshot()
+                currentSquadsLeft = getCurrentSqadsLeft(screen)
+                tempVal = getCurrentKills(screen)
+                if tempVal != None:
+                    currentKills = tempVal
 
-    while True:
+                if currentSquadsLeft < squadsLeft:
+                    squadsLeft = currentSquadsLeft
+                    print(f"Squads Left: {squadsLeft}")
+                    k0  =  currentKills - squadsKills[currentSquadsLeft + 1]
+                    squadsKills[currentSquadsLeft] = k0 
+                    print(f"Kills between [{squadsLeft + 1} <-> {squadsLeft}] : {k0}")
 
-        for i in range(8):
-            screen = windowCapture.get_sreenshot()
-            grayScreen = cv2.cvtColor(screen,cv2.COLOR_BGR2GRAY)
-            canny2 = cv2.Canny(grayScreen[y:y+h,x:x+w],50,100)
-            if currentSquadsLeft > 10:
-                squadsLeft = matchTemplates(cropedImgDict2to10,canny2)
-            else:
-                squadsLeft = matchTemplates(cropedImgDict11to20,canny2)
-
-            tempArray[i] = squadsLeft
-            print(squadsLeft)
-        tempSqdsLeft = sum(tempArray)
-        if tempSqdsLeft % 10 == 0 and tempSqdsLeft // 10 < currentSquadsLeft:
-            currentSquadsLeft = tempSqdsLeft // 10
-            print(f"Current squads left : {currentSquadsLeft}")
-        if cv2.waitKey(1) == ord('q'):
-            break
+    except KeyboardInterrupt:
+        sqds = list(squadsKills.keys())
+        kills = list(squadsKills.values())
+        plt.bar(range(len(squadsKills)), kills,tick_label = sqds)
+        now = datetime.now()
+        now =  str(now.strftime("%d-%m-%Y-%H:%M"))
+        plt.savefig('test',format='png')
+        plt.show()
+        
