@@ -2,9 +2,8 @@ from grabsrcreen import WindowCapture
 from pytesseract import pytesseract
 import matplotlib.pyplot as plt
 from datetime import datetime
-import cv2
-import win32gui
-import re
+from collections import Counter
+import cv2, os ,re, win32gui
 
 _PATH_TO_TESSERACT = r"D:\teserract\tesseract.exe"
 
@@ -41,7 +40,7 @@ if __name__ == "__main__":
     windowCapture = WindowCapture(windowName)
     squadsKills = {a:0 for a in range(2,22)}
     squadsLeft = 20
-    currentKills = 0
+    currentKills = [0]
     try:
         while squadsLeft > 1 :
 
@@ -50,21 +49,30 @@ if __name__ == "__main__":
                 currentSquadsLeft = getCurrentSqadsLeft(screen)
                 tempVal = getCurrentKills(screen)
                 if tempVal != None:
-                    currentKills = tempVal
+                    currentKills.append(tempVal)
 
-                if currentSquadsLeft < squadsLeft:
+                if currentSquadsLeft != None and squadsLeft != None  and  currentSquadsLeft < squadsLeft:
                     squadsLeft = currentSquadsLeft
                     print(f"Squads Left: {squadsLeft}")
-                    k0  =  currentKills - squadsKills[currentSquadsLeft + 1]
-                    squadsKills[currentSquadsLeft] = k0 
-                    print(f"Kills between [{squadsLeft + 1} <-> {squadsLeft}] : {k0}")
+                    print(Counter(currentKills).most_common(1))
+                    cnt = Counter(currentKills).most_common(1)[0][0]
+                    killsResult = cnt - squadsKills[currentSquadsLeft + 1]
+                    squadsKills[currentSquadsLeft] = killsResult
+                    print(f"Kills between [{squadsLeft + 1} <-> {squadsLeft}] : {killsResult}")
+            currentKills.clear()
 
     except KeyboardInterrupt:
         sqds = list(squadsKills.keys())
         kills = list(squadsKills.values())
         plt.bar(range(len(squadsKills)), kills,tick_label = sqds)
         now = datetime.now()
-        now =  str(now.strftime("%d-%m-%Y-%H:%M"))
-        plt.savefig('test',format='png')
+        now =  now.strftime("%d-%m-%Y-[%H.%M]")
+
+        folder = 'Apex-Statistics'
+
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+
+        plt.savefig(f"{folder}\{now}.png")
         plt.show()
-        
+        plt.close()
