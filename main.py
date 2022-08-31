@@ -51,10 +51,9 @@ if __name__ == "__main__":
                 if tempVal != None:
                     currentKills.append(tempVal)
 
-                if currentSquadsLeft != None and squadsLeft != None  and  currentSquadsLeft < squadsLeft:
+                if currentSquadsLeft != None and squadsLeft != None  and  currentSquadsLeft < squadsLeft and currentSquadsLeft >= (squadsLeft - 3):
                     squadsLeft = currentSquadsLeft
                     print(f"Squads Left: {squadsLeft}")
-                    print(Counter(currentKills).most_common(1))
                     cnt = Counter(currentKills).most_common(1)[0][0]
                     killsResult = cnt - squadsKills[currentSquadsLeft + 1]
                     squadsKills[currentSquadsLeft] = killsResult
@@ -62,6 +61,9 @@ if __name__ == "__main__":
             currentKills.clear()
 
     except KeyboardInterrupt:
+        pass
+
+    finally:
         sqds = list(squadsKills.keys())
         kills = list(squadsKills.values())
         plt.bar(range(len(squadsKills)), kills,tick_label = sqds)
